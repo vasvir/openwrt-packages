@@ -1,7 +1,7 @@
 # OpenWrt apt-cacher-ng feed
 
 ## News
-* 2023-10-08 Update to apt-cacher-ng 3.7.4
+* 2023-10-08 Update to apt-cacher-ng 3.7.4 and openwrt SDK 22.0.3
 * 2022-11-27 Update to apt-cacher-ng 3.6.4
 * 2020-06-08 Update to openwrt 19.07.3- apt-cacher-ng 3.6.3
 
