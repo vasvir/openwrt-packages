@@ -1,0 +1,67 @@
+diff -ur apt-cacher-ng-3.7.4/conf/acng.conf.in openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/conf/acng.conf.in
+--- apt-cacher-ng-3.7.4/conf/acng.conf.in	2021-12-07 16:43:56.000000000 +0200
++++ openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/conf/acng.conf.in	2023-10-10 22:41:57.423129785 +0300
+@@ -403,7 +403,7 @@
+ # Default: guessed on startup by looking for explicit mention of apt-cacher-ng
+ # in /etc/hosts.allow or /etc/hosts.deny files.
+ #
+-# UseWrap: 0
++UseWrap: 0
+ 
+ # If many machines from the same local network attempt to update index files
+ # (apt-get update) at nearly the same time, the known state of these index file
+diff -ur apt-cacher-ng-3.7.4/src/acfg.h openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/acfg.h
+--- apt-cacher-ng-3.7.4/src/acfg.h	2021-12-07 16:43:56.000000000 +0200
++++ openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/acfg.h	2023-10-10 22:41:57.423129785 +0300
+@@ -6,6 +6,7 @@
+ #include "actypes.h"
+ #include <map>
+ #include <bitset>
++#include <sys/time.h>
+ 
+ #define NUM_PBKDF2_ITERATIONS 1
+ // 1757961
+diff -ur apt-cacher-ng-3.7.4/src/ahttpurl.cc openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/ahttpurl.cc
+--- apt-cacher-ng-3.7.4/src/ahttpurl.cc	2021-12-07 16:43:56.000000000 +0200
++++ openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/ahttpurl.cc	2023-10-10 22:43:09.353594226 +0300
+@@ -32,7 +32,7 @@
+ 		bSSL=true;
+ #endif
+ 	}
+-	else if(isalnum((uint)url[0]))
++	else if(isalnum((int)url[0]))
+ 		hStart=0;
+ 	else if(url[0]=='[')
+ 	{
+diff -ur apt-cacher-ng-3.7.4/src/meta.cc openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/meta.cc
+--- apt-cacher-ng-3.7.4/src/meta.cc	2021-12-07 16:43:56.000000000 +0200
++++ openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/meta.cc	2023-10-10 22:41:57.423129785 +0300
+@@ -831,7 +831,7 @@
+     return true;
+ }
+ 
+-#if !defined(HAVE_STRLCPY) || !HAVE_STRLCPY
++#if !defined(HAVE_STRLCPY) //|| !HAVE_STRLCPY
+ size_t strlcpy(char *tgt, const char *src, size_t tgtSize)
+ {
+     auto p = src;
+diff -ur apt-cacher-ng-3.7.4/src/meta.h openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/meta.h
+--- apt-cacher-ng-3.7.4/src/meta.h	2021-12-07 16:43:56.000000000 +0200
++++ openwrt-sdk-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64/build_dir/target-aarch64_generic_musl/apt-cacher-ng-3.7.4/src/meta.h	2023-10-10 22:41:57.423129785 +0300
+@@ -20,6 +20,7 @@
+ #include <strings.h>
+ #include <cstdlib>
+ #include <errno.h>
++#include <sys/time.h>
+ 
+ #include "astrop.h"
+ 
+@@ -323,7 +324,7 @@
+ static constexpr string_view svRN = szRN;
+ static constexpr string_view svLF = "\n";
+ 
+-#if !defined(HAVE_STRLCPY) || !HAVE_STRLCPY
++#if !defined(HAVE_STRLCPY) //|| !HAVE_STRLCPY
+ size_t strlcpy(char *tgt, const char *src, size_t tgtSize);
+ #endif
+ }
