@@ -6,14 +6,32 @@
 * 2020-06-08 Update to openwrt 19.07.3- apt-cacher-ng 3.6.3
 
 ## Build the package from apt-cacher-ng feed
+1. Some variables - your setup will vary
+   ```
+   BASEDIR=/home/bill/Downloads/hardware/nanopi-r5c
+   ACNG_VERSIO=3.7.4
+   OPENSSL_VERSION=${OPENSSL_VERSION}
+   TARGET=rockchip-armv8
+   PLATFORM=aarch64_generic
+   SNAPSHOT=yes
+   if [ "${SNAPSHOT}" == yes ]; then
+     OPENWRT_SDK=openwrt-sdk-${TARGET}_gcc-12.3.0_musl.Linux-x86_64
+     DOWNLOAD_URL=https://downloads.openwrt.org/snapshots/targets/rockchip/armv8
+   else
+     OPENWRT_VERSION=22.0.3
+     OPENWRT_SDK=openwrt-sdk-${OPENWRT_VERSION}-${TARGET}_gcc-12.3.0_musl.Linux-x86_64
+     DOWNLOAD_URL=https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/rockchip/armv8
+   fi
+   ```
 1. Download SDK for your board. Note this is only an example. You have to select and download the SDK for your particular board.
     ```
-    wget https://downloads.openwrt.org/releases/19.07.3/targets/mvebu/cortexa9/openwrt-sdk-19.07.3-mvebu-cortexa9_gcc-7.5.0_musl_eabi.Linux-x86_64.tar.xz
+    cd ${BASEDIR}
+    wget ${DOWNLOAD_URL}/${OPENWRT_SDK}.tar.xz
     ```
 
 1. Extract SDK
     ```
-    tar -xJf openwrt-sdk-19.07.3-mvebu-cortexa9_gcc-7.5.0_musl_eabi.Linux-x86_64.tar.xz
+    tar -xJf {OPENWRT_SDK}.tar.xz
     ```
 
 1. Use the provided feed
@@ -22,9 +40,9 @@
             ```
             git clone https://github.com/vasvir/openwrt-packages.git
             ```
-        - Edit feeds.conf.default in the sdk downloaded and extracted before. Add
+        - Edit feeds.conf.default in the sdk downloaded and extracted before. Use the expanded version and not the BASEDIR variable. Add
             ```
-            src-link local /home/bill/Downloads/hardware/linksys1200ac/openwrt-packages
+            src-link local ${BASEDIR}/openwrt-packages
             ```
 
     * b. Or Use the feed directly from github
@@ -35,8 +53,10 @@
 
 1. Configure local packages
     ```
-    cd openwrt-sdk-19.07.3-mvebu-cortexa9_gcc-7.5.0_musl_eabi.Linux-x86_64
+    cd ${OPENWRT_SDK}
     ./scripts/feeds update -a
+    # required library c-ares
+    ./scripts/feeds install libcares
     ./scripts/feeds install apt-cacher-ng
     make menuconfig
     ```
@@ -53,15 +73,16 @@
     make -j5
     ```
 
-1. Copy ipk file over to openwrt router
+1. Copy ipk file for apt-cacher-ng and libopenssl3 over to openwrt router. libopenssl3 is not installable via opkg in 22.0.3
     ```
-    rsync -av bin/packages/arm_cortex-a9_vfpv3-d16/local/apt-cacher-ng_3.6.4-1_arm_cortex-a9_vfpv3-d16.ipk root@openwrt:
+    rsync -av bin/packages/${PLATFORM}/local/apt-cacher-ng_${ACNG_VERSION}-1_${PLATFORM}.ipk bin/packages/${PLATFORM}/base/libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk root@openwrt:
     ```
 
-1. Install the apt-cacher-ng package [3]
+1. Install the apt-cacher-ng package and its dependencies [3]
     ```
     ssh root@openwrt
-    opkg install apt-cacher-ng_3.6.4-1_arm_cortex-a9_vfpv3-d16.ipk
+    opkg install libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk
+    opkg install apt-cacher-${ACNG_VERSION}_${PLATFORM}.ipk
     ```
     
 1. Configure apt-cacher-ng service
@@ -74,7 +95,6 @@
     ```
 
 ## TODO
-* Adjust pathnames in README.md
 * Autoconfigure step 9
 
 ## Troubleshooting
@@ -86,10 +106,10 @@ friendly commands
 * make V=s package/feeds/local/apt-cacher-ng/install
 
 ### [1] Buildroot Makefile problem.
-Adjust /home/bill/Downloads/hardware/linksys1200ac/openwrt-packages/apt-cacher-ng/Makefile and retry
+Adjust ${BASEDIR}/openwrt-packages/apt-cacher-ng/Makefile and retry
 ```
 ./scripts/feeds uninstall apt-cacher-ng
-rm -rf  build_dir/target-arm_cortex-a9+vfpv3-d16_musl_eabi/apt-cacher-ng-3.6.4/
+rm -rf  build_dir/target-${PLATFORM}_musl/apt-cacher-ng-${ACNG_VERSION}/
 ./scripts/feeds install apt-cacher-ng
 make menuconfig
 ```
@@ -104,29 +124,29 @@ Adjust /home/bill/Downloads/hardware/linksys1200ac/openwrt-packages/apt-cacher-n
 * setup once:
     * download the apt-cacher-ng source
         ```
-        wget http://ftp.us.debian.org/debian/pool/main/a/apt-cacher-ng/apt-cacher-ng_3.6.4.orig.tar.xz
+        wget http://ftp.us.debian.org/debian/pool/main/a/apt-cacher-ng/apt-cacher-ng_${ACNG_VERSION}.orig.tar.xz
         ```
 
     * extract it
          ```
-         tar -xJf apt-cacher-ng_3.6.4.orig.tar.xz
+         tar -xJf apt-cacher-ng_${ACNG_VERSION}.orig.tar.xz
          ```
 
     * rename and copy it to have an easy diff target
          ```
-         mv apt-cacher-ng_3.6.4 a
+         mv apt-cacher-ng_${ACNG_VERSION} a
          cp -a a b
          ```
 
 * edit test cycle
     * modify b - produce patches for CMakeLists.txt and move them over to /home/bill/Downloads/hardware/linksys1200ac/openwrt-packages/apt-cacher-ng/patches/000-add_install_target.patch
         ```
-       diff -ur a b > /home/bill/Downloads/hardware/linksys1200ac/openwrt-packages/apt-cacher-ng/patches/000-add_install_target.patch
+       diff -ur a b > ${BASEDIR}/openwrt-packages/apt-cacher-ng/patches/000-add_install_target.patch
         ```
 
     * build
         ```
-        rm -rf build_dir/target-arm_cortex-a9+vfpv3-d16_musl_eabi/apt-cacher-ng-3.6.4/ 
+        rm -rf build_dir/target-${PLATFORM}_musl/apt-cacher-ng-${ACNG_VERSION} 
         make V=s
         ```
 
@@ -135,9 +155,9 @@ Adjust Buildroot Makefile and retry:
 ```
 ssh root@openwrt opkg remove apt-cacher-ng
 ./scripts/feeds uninstall apt-cacher-ng
-rm -rf build_dir/target-arm_cortex-a9+vfpv3-d16_musl_eabi/apt-cacher-ng-3.6.4/
+rm -rf build_dir/target-${PLATFORM}_musl/apt-cacher-ng-${ACNG_VERSION}
 ./scripts/feeds install apt-cacher-ng
 make -j5
-rsync -av bin/packages/arm_cortex-a9_vfpv3-d16/local/apt-cacher-ng_3.6.4-1_arm_cortex-a9_vfpv3-d16.ipk root@openwrt:
-ssh root@openwrt opkg install apt-cacher-ng_3.6.4-1_arm_cortex-a9_vfpv3-d16.ipk
+rsync -av bin/packages/${PLATFORM}/local/apt-cacher-ng_${ACNG_VERSION}-1_${PLATFORM}.ipk bin/packages/${PLATFORM}/base/libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk root@openwrt:
+ssh root@openwrt opkg install libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk apt-cacher-${ACNG_VERSION}_${PLATFORM}.ipk
 ```
