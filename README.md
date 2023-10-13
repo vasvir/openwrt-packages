@@ -10,7 +10,7 @@
    ```
    BASEDIR=/home/bill/Downloads/hardware/nanopi-r5c
    ACNG_VERSIO=3.7.4
-   OPENSSL_VERSION=${OPENSSL_VERSION}
+   OPENSSL_VERSION=3.0.11
    TARGET=rockchip-armv8
    PLATFORM=aarch64_generic
    SNAPSHOT=yes
