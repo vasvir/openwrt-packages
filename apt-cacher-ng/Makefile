@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=apt-cacher-ng
-PKG_VERSION:=3.7.4
+PKG_VERSION:=3.7.5
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)_$(PKG_VERSION).orig.tar.xz
 PKG_SOURCE_URL:=http://ftp.us.debian.org/debian/pool/main/a/apt-cacher-ng/
-PKG_HASH:=63140473a669c42f5e2219e38fa9d7c733f9047699dde52c3bd828e372929a5f
+PKG_HASH:=2e4887d6870396334992accd331e12cba86dfef857532f610bb0635a8e32900d
 PKG_MAINTAINER:=Vassilis Virvilis <vasvir2@gmail.com>
 #PKG_MAINTAINER:=Gerad Munsch <gmunsch@unforgivendevelopment.com>
 PKG_LICENSE:=GPL-3.0

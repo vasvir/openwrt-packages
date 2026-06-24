@@ -1,6 +1,7 @@
 # OpenWrt apt-cacher-ng feed
 
 ## News
+* 2026-06-24 Update to apt-cacher-ng 3.7.5 and openwrt SDK 25.12.4
 * 2023-10-08 Update to apt-cacher-ng 3.7.4 and openwrt SDK 22.0.3
 * 2022-11-27 Update to apt-cacher-ng 3.6.4
 * 2020-06-08 Update to openwrt 19.07.3- apt-cacher-ng 3.6.3
@@ -8,30 +9,29 @@
 ## Build the package from apt-cacher-ng feed
 1. Some variables - your setup will vary
    ```
-   BASEDIR=/home/bill/Downloads/hardware/nanopi-r5c
-   ACNG_VERSIO=3.7.4
-   OPENSSL_VERSION=3.0.11
+   BASEDIR=/home/bill/Downloads/hardware/nanopi-r5c/custom-software
+   ACNG_VERSION=3.7.5
    TARGET=rockchip-armv8
    PLATFORM=aarch64_generic
-   SNAPSHOT=yes
+   SNAPSHOT=no
    if [ "${SNAPSHOT}" == yes ]; then
      OPENWRT_SDK=openwrt-sdk-${TARGET}_gcc-12.3.0_musl.Linux-x86_64
      DOWNLOAD_URL=https://downloads.openwrt.org/snapshots/targets/rockchip/armv8
    else
-     OPENWRT_VERSION=22.0.3
-     OPENWRT_SDK=openwrt-sdk-${OPENWRT_VERSION}-${TARGET}_gcc-12.3.0_musl.Linux-x86_64
+     OPENWRT_VERSION=25.12.4
+     OPENWRT_SDK=openwrt-sdk-${OPENWRT_VERSION}-${TARGET}_gcc-14.3.0_musl.Linux-x86_64
      DOWNLOAD_URL=https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/rockchip/armv8
    fi
    ```
 1. Download SDK for your board. Note this is only an example. You have to select and download the SDK for your particular board.
     ```
     cd ${BASEDIR}
-    wget ${DOWNLOAD_URL}/${OPENWRT_SDK}.tar.xz
+    wget ${DOWNLOAD_URL}/${OPENWRT_SDK}.tar.zst
     ```
 
 1. Extract SDK
     ```
-    tar -xJf {OPENWRT_SDK}.tar.xz
+    tar --zstd -xf ${OPENWRT_SDK}.tar.zst
     ```
 
 1. Use the provided feed
@@ -50,6 +50,9 @@
             ```
             src-git local https://github.com/vasvir/openwrt-packages.git
             ```
+1. Edit the Makefile in openwrt-packages/apt-cacher-ng/
+    * Update PKG_VERSION
+    * Update PKG_HASH it is the Sha256 of the orig.tar.xz
 
 1. Configure local packages
     ```
@@ -73,21 +76,32 @@
     make -j5
     ```
 
-1. Copy ipk file for apt-cacher-ng and libopenssl3 over to openwrt router. libopenssl3 is not installable via opkg in 22.0.3
+    This takes some time though, around 4m when everything is already built except our package.
+
+1. Copy apk file for apt-cacher-ng over to openwrt router.
     ```
-    rsync -av bin/packages/${PLATFORM}/local/apt-cacher-ng_${ACNG_VERSION}-1_${PLATFORM}.ipk bin/packages/${PLATFORM}/base/libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk root@openwrt:
+    rsync -av bin/packages/${PLATFORM}/local/apt-cacher-ng-${ACNG_VERSION}-r1.apk root@openwrt:
     ```
 
 1. Install the apt-cacher-ng package and its dependencies [3]
     ```
     ssh root@openwrt
-    opkg install libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk
-    opkg install apt-cacher-${ACNG_VERSION}_${PLATFORM}.ipk
+    apk add --allow-untrusted ./apt-cacher-ng-${ACNG_VERSION}-r1.apk
     ```
     
 1. Configure apt-cacher-ng service
-    * edit /etc/apt-cacher-ng/acng.conf to configure the cachedir and logdir
-    * create cachedir, logdir and /var/run/apt-cacher-ng/. Chown them to apt-cacher-ng.apt-cacher.ng
+
+Create the CACHEDIR, LOGDIR and /var/run/apt-cacher-ng/ directories. You need probably an external disk already setup for cachedir and logdir.
+
+```
+EXTERNAL_DIST_MOUNTPOINT=/mnt/intenso-4t-usb3
+CACHEDIR=${EXTERNAL_DIST_MOUNTPOINT}/var/cache/apt-cacher-ng
+LOGDIR=${EXTERNAL_DIST_MOUNTPOINT}/var/log/apt-cacher-ng
+mkdir -p ${CACHEDIR}  ${LOGDIR} /var/run/apt-cacher-ng/
+chown -R apt-cacher-ng:apt-cacher-ng ${CACHEDIR} ${LOGDIR}
+```
+
+Edit /etc/apt-cacher-ng/acng.conf to configure the cachedir and logdir.
 
 1. Restart the service
     ```
@@ -95,13 +109,14 @@
     ```
 
 ## TODO
-* Autoconfigure step 9
+* Autoconfigure step: Configure apt-cacher-ng service.
 
 ## Troubleshooting
-This is possible only if you have followed step 3a.
+This is possible only if you have followed option a) in the "Use the provided feed" step.
 
 friendly commands
 * make V=s
+* make V=s package/feeds/local/apt-cacher-ng/clean
 * make V=s package/feeds/local/apt-cacher-ng/compile
 * make V=s package/feeds/local/apt-cacher-ng/install
 
@@ -158,6 +173,6 @@ ssh root@openwrt opkg remove apt-cacher-ng
 rm -rf build_dir/target-${PLATFORM}_musl/apt-cacher-ng-${ACNG_VERSION}
 ./scripts/feeds install apt-cacher-ng
 make -j5
-rsync -av bin/packages/${PLATFORM}/local/apt-cacher-ng_${ACNG_VERSION}-1_${PLATFORM}.ipk bin/packages/${PLATFORM}/base/libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk root@openwrt:
-ssh root@openwrt opkg install libopenssl3_${OPENSSL_VERSION}-1_${PLATFORM}.ipk apt-cacher-${ACNG_VERSION}_${PLATFORM}.ipk
+rsync -av bin/packages/${PLATFORM}/local/apt-cacher-ng-${ACNG_VERSION}-r1.apk root@openwrt:
+ssh root@openwrt apk add --allow-untrusted ./apt-cacher-ng-${ACNG_VERSION}-r1.apk
 ```
